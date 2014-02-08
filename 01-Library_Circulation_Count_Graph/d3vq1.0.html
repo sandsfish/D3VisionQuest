@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+/*
+ * Author:
+ *
+ *  Sands Fish
+ *  MIT Libraries
+ *  @sandsfish
+ *  sandsfish@gmail.com
+ *
+ * Refs:
+ *
+ *  http://bl.ocks.org/mbostock/4062045
+ *  http://bl.ocks.org/mbostock/raw/4062045/8781145235fb469685c9147648423ca5e6f1342f/
+ *  https://github.com/mbostock/d3/wiki/Quantitative-Scales
+ *  http://stackoverflow.com/questions/18164230/add-text-label-to-d3-node-in-force-directed-graph-and-resize-on-hover
+ *  http://jsfiddle.net/pnavarrc/RRUzZ/20/
+ *
+ */
+
+body {
+  font-family: 'HelveticaNeue-UltraLight', 'Helvetica Neue UltraLight', 'Helvetica Neue', Arial, Helvetica, sans-serif; font-weight: 100; letter-spacing: 1px;
+  color: #666;
+}
+
+h1, h3 {
+  font-family: 'HelveticaNeue-UltraLight', 'Helvetica Neue UltraLight', 'Helvetica Neue', Arial, Helvetica, sans-serif; font-weight: 100; letter-spacing: 1px;
+}
+
+h1 {
+  margin-bottom: -20px;
+}
+.node {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.link {
+  stroke: #BBB;
+  stroke-opacity: .6;
+  stroke-dasharray: 10,10;
+}
+
+text {
+  font-family: 'Helvetica Neue';
+  fill: #666;
+}
+
+</style>
+<body>
+  <h1>Sands Fish</h1>
+  <h1>D3 Vision Quest - Project 1</h1>
+  <h3>Friday, February 7, 2014</h3>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var width = 1000,
+    height = 725;
+
+var root_id = "MIT Libraries"
+
+var color = d3.scale.category20();
+
+var log_scale = d3.scale.log();
+
+var force = d3.layout.force()
+    .charge(-600)
+    .linkDistance(250)
+    .size([width, height]);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+d3.json("library_count_graph.json", function(error, graph) {
+  force
+      .nodes(graph.nodes)
+      .links(graph.links)
+      .start();
+
+  var link = svg.selectAll(".link")
+      .data(graph.links)
+    .enter().append("line")
+      .attr("class", "link");
+
+// Create the groups under svg
+var gnodes = svg.selectAll('g.gnode')
+  .data(graph.nodes)
+  .enter()
+  .append('g')
+  .classed('gnode', true);
+
+// Add one circle in each group
+var node = gnodes.append("circle")
+  .attr("class", "node")
+  .attr("r", function(d) { 
+    if(d.count == undefined) {
+      return 10;
+    } else {
+      console.log(log_scale(d.count)*1000);
+      return log_scale(d.count)*20;
+      // return d.count;
+    }; 
+  })
+  .style("fill", function(d, i) { return color(i); })
+  .call(force.drag);
+
+// Append the labels to each group
+var labels = gnodes.append("text")
+  .text(function(d) { 
+    if(d.id != root_id) { 
+      return d.id + " (" + d.count + ")";
+    } else { 
+      return d.id;
+    } 
+  })
+  .style("fill", function(d) { 
+    if(d.id == root_id) { 
+      return "#333";
+    }
+  })
+  .style("font-size", function(d) {
+    if(d.id == root_id) {
+      return 30;
+    }
+  });
+
+  node.append("title")
+      .text(function(d) { return d.id; });
+
+  force.on("tick", function() {
+    link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    // Translate the groups
+    gnodes.attr("transform", function(d) { 
+      return 'translate(' + [d.x, d.y] + ')'; 
+    });
+  });
+});
+
+</script>
+
+<br/>
+
+<div style="width: 50%">Data generated from the <a href="http://web.mit.edu/warehouse/metadata/tables/all_tables.html">MIT Data Warehouse</a> table "<a href="http://web.mit.edu/warehouse/metadata/fields/library_circulation_detail.html">LIBRARY_CIRCULATION_DETAIL</a>", providing counts of how many items (of any type) were circulated from each library and displaying their nodes as relative log-sized.  The graph data structure and JSON were made using <a href="http://networkx.github.io/">NetworkX</a>.</div>
